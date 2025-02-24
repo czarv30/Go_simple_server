@@ -1,0 +1,9 @@
+create database school_records;
+
+\c school_records;
+
+create table students (
+
+    student_id SERIAL PRIMARY KEY
+
+)

@@ -2,10 +2,9 @@
 Simple training exercise.
 
 Notes from phone conversation
-May be able to find unpaid work at his shop. 
-Sends assignment. 
-One week. 
-Write a server (in go) that connects to postgres database. 
+* May be able to find unpaid work at his shop. 
+* Sends assignment. One week. 
+* Write a server (in go) that connects to postgres database.
 Post json blob, say student record. Put that into a student table. Maybe another classes table. 
 
 Later notes (WhatsApp)

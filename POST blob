@@ -1,0 +1,10 @@
+POST /users HTTP/1.1
+Host: example.com
+Content-Type: application/json
+Content-Length: 36
+
+{
+  "first name": "David",
+  "last name": "Bowie",
+  "birth date": "2017-08-30"
+}

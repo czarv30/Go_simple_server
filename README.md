@@ -7,7 +7,7 @@ Sends assignment.
 One week. 
 Write a server (in go) that connects to postgres database. 
 Post json blob, say student record. Put that into a student table. Maybe another classes table. 
-+
+
 Later notes (WhatsApp)
 So to formalize the homework a bit more:
 - install postgres

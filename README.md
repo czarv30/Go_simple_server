@@ -16,3 +16,5 @@ So to formalize the homework a bit more:
 - a GET web request which will result in all rows from that table being returned
 - a different GET request where I could specify a couple of different parameters that will return to me just those rows that match
 I should be able to recreate the same table on my end because you will have a .sql file that can be used to recreate it.
+
+Testing: Once server is running, in terminal do "curl.exe http://localhost:8080/GetStudents" should print "hello."

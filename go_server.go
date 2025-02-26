@@ -5,6 +5,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	_ "github.com/lib/pq" // The funky underscore at the beginning allows me to import a package without using it. In this case we just want to "register" the postgres driver. Compiler will complain if it's missing.
 )
 
 // The handler must be a method. Simplest way looks to be to attach to an empty struct.

@@ -1,0 +1,1 @@
+SELECT student_id, first_name, last_name, birth_date FROM students

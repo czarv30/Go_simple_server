@@ -49,6 +49,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			var s student
 			rows.Scan(&s.StudentID, &s.FirstName, &s.LastName, &s.DateOfBirth)
+			// Assigns s, go passes value, need ampersand to write into s.
 			students = append(students, s)
 		}
 
@@ -62,6 +63,21 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == "POST" {
 		fmt.Fprintf(w, "Adding new student... \n\n")
+
+		var s student
+		err := json.NewDecoder(r.Body).Decode(&s)
+		if err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		_, err = h.db.Exec("INSERT INTO students (first_name, last_name, birth_date) VALUES ($1, $2, $3)", s.FirstName, s.LastName, s.DateOfBirth)
+		if err != nil {
+			http.Error(w, "Insert failed", http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Fprintf(w, "Student added!")
 
 	}
 }

@@ -23,4 +23,6 @@ Other reqs
 - Credentials CLI
 
 Testing: 
-- Once server is running, in terminal do "curl.exe http://localhost:8080/GetStudents" should print "hello."
+- The Get request should be testable by pointing the browser to http://localhost:8080/GetStudents" 
+- For the Post request I should be able to do:
+curl -X POST -H "Content-Type: application/json" -d '{"first_name":"Dave","last_name":"Grohl","date_of_birth":"1971-04-25"}' http://localhost:8080/AddStudent

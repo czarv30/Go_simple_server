@@ -2,9 +2,7 @@
 Simple training exercise.
 
 Notes from phone conversation
-* May be able to find unpaid work at his shop. 
-* Sends assignment. One week. 
-* Write a server (in go) that connects to postgres database.
+- Write a server (in go) that connects to postgres database.
 Post json blob, say student record. Put that into a student table. Maybe another classes table. 
 
 Later notes (WhatsApp)
@@ -17,4 +15,12 @@ So to formalize the homework a bit more:
 - a different GET request where I could specify a couple of different parameters that will return to me just those rows that match
 I should be able to recreate the same table on my end because you will have a .sql file that can be used to recreate it.
 
-Testing: Once server is running, in terminal do "curl.exe http://localhost:8080/GetStudents" should print "hello."
+Other reqs
+- Don't throw away errors.
+- Define types to handle db data, and leverage the std library json parser for input/output. 
+- Think about separating the SQL. 
+- Submit updates via PRs. 
+- Credentials CLI
+
+Testing: 
+- Once server is running, in terminal do "curl.exe http://localhost:8080/GetStudents" should print "hello."

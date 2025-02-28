@@ -22,7 +22,11 @@ func (h GetStudentsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(w, "Hello! Pulling up all students ")
 
-	rows, _ := h.db.Query("SELECT first_name FROM students")
+	rows, err := h.db.Query("SELECT first_name FROM students")
+	if err != nil {
+		http.Error(w, "Query failed", http.StatusInternalServerError)
+		return
+	}
 	defer rows.Close()
 
 	var names []string

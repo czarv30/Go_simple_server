@@ -2,6 +2,7 @@ package main // main defines executable, as opposed to a library.
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,10 +12,10 @@ import (
 )
 
 type student struct {
-	StudentID   int
-	FirstName   string
-	LastName    string
-	DateOfBirth time.Time
+	StudentID   int       `json:"student_id"`
+	FirstName   string    `json:"first_name"`
+	LastName    string    `json:"last_name"`
+	DateOfBirth time.Time `json:"date_of_birth"`
 }
 
 // The handler must be a method. Simplest way looks to be to attach to an empty struct.
@@ -42,7 +43,7 @@ func (h GetStudentsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var students []student
+	var students []student // "slice" syntax, simliar to python list.
 
 	for rows.Next() {
 		var s student
@@ -50,9 +51,12 @@ func (h GetStudentsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		students = append(students, s)
 	}
 
-	for _, s := range students {
-		fmt.Fprintf(w, "ID: %d, Name: %s %s, Born: %s\n", s.StudentID, s.FirstName, s.LastName, s.DateOfBirth.Format("2006-01-02"))
+	StudentData, err := json.Marshal(students)
+	if err != nil {
+		http.Error(w, "Failed to marshal JSON", http.StatusInternalServerError)
+		return
 	}
+	w.Write(StudentData)
 }
 
 func main() {
@@ -61,12 +65,13 @@ func main() {
 	// first argument is the driver name, hence postgres.
 	// Normally I wouldn't write a password straight into the code like this but secrets management feels
 	// out of scope for the assignment.
-
 	if err != nil || db == nil {
 		panic("Failed to connect to database: " + err.Error())
 	}
 	defer db.Close()
-	handler := GetStudentsHandler{db: db}
-	http.Handle("/GetStudents", handler)
+
+	GetHandler := GetStudentsHandler{db: db}
+	http.Handle("/GetStudents", GetHandler)
+
 	http.ListenAndServe(":8080", nil)
 }

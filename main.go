@@ -3,7 +3,6 @@ package main // main defines executable, as opposed to a library.
 import (
 	"database/sql"
 	"encoding/json"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -34,13 +33,7 @@ func (h GetHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// "w" is an instance of the http.ResponseWriter type
 	// Likewise with r but in this case is a pointer, as required by the package.
 
-	query, err := os.ReadFile("get_all_students.sql")
-	if err != nil {
-		http.Error(w, "Failed to read SQL file", http.StatusInternalServerError)
-		return
-	}
-
-	rows, err := h.db.Query(string(query))
+	rows, err := h.db.Query("SELECT student_id, first_name, last_name, birth_date FROM students")
 	if err != nil {
 		http.Error(w, "Query failed", http.StatusInternalServerError)
 		return
@@ -90,12 +83,17 @@ func main() {
 	// Normally I wouldn't write a password straight into the code like this but secrets management feels
 	// out of scope for the assignment.
 	if err != nil || db == nil {
-		panic("Failed to connect to database: " + err.Error())
+		slog.Error("Failed to connect to database", "error", err)
+		panic(err)
 	}
 	defer db.Close()
 
 	http.Handle("/GetStudents", GetHelper{db: db})
 	http.Handle("/AddStudent", PostHelper{db: db})
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	slog.Info("Server starting on :8080")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		slog.Error("Server failed", "error", err)
+		os.Exit(1)
+	}
 }

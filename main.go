@@ -3,7 +3,8 @@ package main // main defines executable, as opposed to a library.
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
+	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -18,68 +19,68 @@ type student struct {
 	DateOfBirth time.Time `json:"date_of_birth"`
 }
 
-// The handler must be a method. Simplest way looks to be to attach to an empty struct.
-type Handler struct {
+// Architecture note: The way this library works the handler functions for each endpoint need to be methods on a struct.
+// Despite being identical, I need two separate types because each differentiates Get vs Post.
+type GetHelper struct {
+	db *sql.DB
+}
+type PostHelper struct {
 	db *sql.DB
 }
 
-func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// The struct should be referenced by pointer, for efficiency reasons. Otherwise we copy the struct.
+func (h GetHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// syntax above: "h" is like self in python class definition. The stuff in parenthesis attaches the function to the struct as a method. In go, structs can have methods.
 	// "w" is an instance of the http.ResponseWriter type
 	// Likewise with r but in this case is a pointer, as required by the package.
 
-	if r.Method == "GET" {
-		fmt.Fprintf(w, "Hello! Pulling up all students \n\n")
-
-		query, err := os.ReadFile("get_all_students.sql")
-		if err != nil {
-			http.Error(w, "Failed to read SQL file", http.StatusInternalServerError)
-			return
-		}
-
-		rows, err := h.db.Query(string(query))
-		if err != nil {
-			http.Error(w, "Query failed", http.StatusInternalServerError)
-			return
-		}
-		defer rows.Close()
-
-		var students []student // "slice" syntax, simliar to python list.
-
-		for rows.Next() {
-			var s student
-			rows.Scan(&s.StudentID, &s.FirstName, &s.LastName, &s.DateOfBirth)
-			// Assigns s, go passes value, need ampersand to write into s.
-			students = append(students, s)
-		}
-
-		StudentData, err := json.Marshal(students)
-		if err != nil {
-			http.Error(w, "Failed to marshal JSON", http.StatusInternalServerError)
-			return
-		}
-		w.Write(StudentData)
-
+	query, err := os.ReadFile("get_all_students.sql")
+	if err != nil {
+		http.Error(w, "Failed to read SQL file", http.StatusInternalServerError)
+		return
 	}
-	if r.Method == "POST" {
-		fmt.Fprintf(w, "Adding new student... \n\n")
 
+	rows, err := h.db.Query(string(query))
+	if err != nil {
+		http.Error(w, "Query failed", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var students []student // "slice" syntax, simliar to python list.
+
+	for rows.Next() {
 		var s student
-		err := json.NewDecoder(r.Body).Decode(&s)
-		if err != nil {
-			http.Error(w, "Invalid JSON", http.StatusBadRequest)
-			return
-		}
-
-		_, err = h.db.Exec("INSERT INTO students (first_name, last_name, birth_date) VALUES ($1, $2, $3)", s.FirstName, s.LastName, s.DateOfBirth)
-		if err != nil {
-			http.Error(w, "Insert failed", http.StatusInternalServerError)
-			return
-		}
-
-		fmt.Fprintf(w, "Student added!")
-
+		rows.Scan(&s.StudentID, &s.FirstName, &s.LastName, &s.DateOfBirth)
+		// Assigns s, go passes value, need ampersand to write into s.
+		students = append(students, s)
 	}
+
+	StudentData, err := json.Marshal(students)
+	if err != nil {
+		http.Error(w, "Failed to marshal JSON", http.StatusInternalServerError)
+		return
+	}
+	w.Write(StudentData)
+}
+
+func (h PostHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	var s student
+	err := json.NewDecoder(r.Body).Decode(&s)
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	_, err = h.db.Exec("INSERT INTO students (first_name, last_name, birth_date) VALUES ($1, $2, $3)", s.FirstName, s.LastName, s.DateOfBirth)
+	if err != nil {
+		http.Error(w, "Insert failed", http.StatusInternalServerError)
+		return
+	}
+
+	slog.Info("A new student has been added. ")
+
 }
 
 func main() {
@@ -93,9 +94,8 @@ func main() {
 	}
 	defer db.Close()
 
-	h := Handler{db: db}
-	http.Handle("/GetStudents", h)
-	http.Handle("/AddStudent", h)
+	http.Handle("/GetStudents", GetHelper{db: db})
+	http.Handle("/AddStudent", PostHelper{db: db})
 
-	http.ListenAndServe(":8080", nil)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }

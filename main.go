@@ -30,7 +30,6 @@ func (h GetHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Query failed", http.StatusInternalServerError)
 		return
 	}
-	defer h.db.Close() // In Go, "defer" schedules a function call to be executed after the surrounding function returns, regardless of whether the function exits normally or via an error.
 
 	StudentData, err := json.Marshal(students)
 	if err != nil {

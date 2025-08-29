@@ -1,4 +1,4 @@
-package main // main defines executable, as opposed to a library.
+package main // main defines top level executable, as opposed to a library.
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/czarv30/Go_simple_server_db/school_db"
+	school_db "github.com/czarv30/Go_simple_server_db"
 )
 
 // The way this library works the handler functions for each endpoint need to be methods on a struct.

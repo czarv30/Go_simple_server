@@ -1,30 +1,21 @@
-package main // main defines executable, as opposed to a library.
+package main // main defines top level executable, as opposed to a library.
 
 import (
-	"database/sql"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"os"
-	"time"
 
-	_ "github.com/lib/pq" // The funky underscore at the beginning allows me to import a package without using it. In this case we just want to "register" the postgres driver. Compiler will complain if it's missing.
+	school_db "github.com/czarv30/Go_simple_server_db"
 )
 
-type student struct {
-	StudentID   int       `json:"student_id"`
-	FirstName   string    `json:"first_name"`
-	LastName    string    `json:"last_name"`
-	DateOfBirth time.Time `json:"date_of_birth"`
-}
-
-// Architecture note: The way this library works the handler functions for each endpoint need to be methods on a struct.
+// The way this library works the handler functions for each endpoint need to be methods on a struct.
 // Despite being identical, I need two separate types because each differentiates Get vs Post.
 type GetHelper struct {
-	db *sql.DB
+	db *school_db.SchoolDb
 }
 type PostHelper struct {
-	db *sql.DB
+	db *school_db.SchoolDb
 }
 
 // The struct should be referenced by pointer, for efficiency reasons. Otherwise we copy the struct.
@@ -33,20 +24,11 @@ func (h GetHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// "w" is an instance of the http.ResponseWriter type
 	// Likewise with r but in this case is a pointer, as required by the package.
 
-	rows, err := h.db.Query("SELECT student_id, first_name, last_name, birth_date FROM students")
+	students, err := h.db.GetAllStudents()
+
 	if err != nil {
 		http.Error(w, "Query failed", http.StatusInternalServerError)
 		return
-	}
-	defer rows.Close()
-
-	var students []student // "slice" syntax, simliar to python list.
-
-	for rows.Next() {
-		var s student
-		rows.Scan(&s.StudentID, &s.FirstName, &s.LastName, &s.DateOfBirth)
-		// Assigns s, go passes value, need ampersand to write into s.
-		students = append(students, s)
 	}
 
 	StudentData, err := json.Marshal(students)
@@ -59,14 +41,14 @@ func (h GetHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h PostHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	var s student
+	var s school_db.Student
 	err := json.NewDecoder(r.Body).Decode(&s)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	_, err = h.db.Exec("INSERT INTO students (first_name, last_name, birth_date) VALUES ($1, $2, $3)", s.FirstName, s.LastName, s.DateOfBirth)
+	err = h.db.PostStudent(s)
 	if err != nil {
 		http.Error(w, "Insert failed", http.StatusInternalServerError)
 		return
@@ -78,18 +60,16 @@ func (h PostHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
-	db, err := sql.Open("postgres", "user=postgres password=dbzsuper dbname=school_records sslmode=disable")
-	// first argument is the driver name, hence postgres.
-	// Normally I wouldn't write a password straight into the code like this but secrets management feels
-	// out of scope for the assignment.
-	if err != nil || db == nil {
+	dbi, err := school_db.InitSchoolDb("user=postgres password=dbzsuper dbname=school_records sslmode=disable") // Initialize the database connection.
+
+	if err != nil || dbi == nil {
 		slog.Error("Failed to connect to database", "error", err)
 		panic(err)
 	}
-	defer db.Close()
+	defer dbi.Close() // In Go, "defer" schedules a function call to be executed after the surrounding function returns, regardless of whether the function exits normally or via an error.
 
-	http.Handle("/GetStudents", GetHelper{db: db})
-	http.Handle("/AddStudent", PostHelper{db: db})
+	http.Handle("/GetStudents", GetHelper{db: dbi})
+	http.Handle("/AddStudent", PostHelper{db: dbi})
 
 	slog.Info("Server starting on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
